@@ -15,8 +15,8 @@ export default function Home() {
     setResults("");
 
     try {
-      // استبدل YOUR_VPS_IP برقم الآي بي الخاص بالسيرفر الألماني
-      const response = await fetch("http://YOUR_VPS_IP:8000/api/generate-leads", {
+      // الاتصال عبر النفق المشفر الآمن
+      const response = await fetch("https://wgrif-2a01-4f8-c015-aeb7--1.run.pinggy-free.link/api/generate-leads", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +35,7 @@ export default function Home() {
         setResults("حدث خطأ أثناء البحث: " + data.message);
       }
     } catch (error) {
-      setResults("فشل الاتصال بالسيرفر. تأكد من تشغيل FastAPI وتفعيل المنافذ.");
+      setResults("فشل الاتصال بالسيرفر. تأكد من تشغيل النفق و FastAPI.");
     } finally {
       setLoading(false);
     }
