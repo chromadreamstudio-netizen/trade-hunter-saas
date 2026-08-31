@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [targetUrl, setTargetUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(0); // 0: none, 1: scraper, 2: profiler, 3: hunter
+  const [results, setResults] = useState("");
 
   // التحقق من الجلسة (Session) لمنع دخول غير المشتركين
   useEffect(() => {
@@ -34,19 +35,43 @@ export default function DashboardPage() {
     router.push(`/${currentLangCode}/login`);
   };
 
-  const handleStartHunt = () => {
+  const handleStartHunt = async () => {
     if (!targetUrl.includes("http")) return alert(isRtl ? "الرجاء إدخال رابط صحيح يبدأ بـ http" : "Please enter a valid URL starting with http");
     
     setLoading(true);
+    setResults("");
     setActiveAgent(1);
 
-    // محاكاة بصرية لعمل الوكلاء (سيتم ربطها بالـ API الفعلي لاحقاً)
-    setTimeout(() => setActiveAgent(2), 2000);
-    setTimeout(() => setActiveAgent(3), 4500);
-    setTimeout(() => {
-      setActiveAgent(4);
+    // محاكاة بصرية لانتقال الوكلاء أثناء انتظار معالجة السيرفر
+    const timer1 = setTimeout(() => setActiveAgent(2), 3000);
+    const timer2 = setTimeout(() => setActiveAgent(3), 6000);
+
+    try {
+      const response = await fetch("/api/generate-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_description: targetUrl, // نرسل الرابط للسيرفر الألماني ليقوم الوكيل بقراءته
+          target_market: "السعودية والإمارات", // ثابتة مؤقتاً للتجربة
+        }),
+      });
+
+      const data = await response.json();
+      
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      setActiveAgent(4); // وكيل المراسلة
+
+      if (data.status === "success") {
+        setResults(data.data);
+      } else {
+        setResults(isRtl ? "حدث خطأ في محرك الصيد: " + data.message : "Hunting error: " + data.message);
+      }
+    } catch (error) {
+      setResults(isRtl ? "فشل الاتصال بالسيرفر المركزي." : "Connection failed.");
+    } finally {
       setLoading(false);
-    }, 7000);
+    }
   };
 
   if (!user) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -201,6 +226,19 @@ export default function DashboardPage() {
                   <span className="text-sm font-mono bg-green-900/50 px-2 py-1 rounded">24 Leads Found</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* شاشة عرض النتائج الفعلية */}
+          {results && (
+            <div className="mt-8 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
+              <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-emerald-400" /> 
+                {isRtl ? 'النتائج الحية من الخادم الألماني' : 'Live Results from Server'}
+              </h4>
+              <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto shadow-inner">
+                {results}
+              </div>
             </div>
           )}
 
