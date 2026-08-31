@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [targetUrl, setTargetUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(0); // 0: none, 1: scraper, 2: profiler, 3: hunter
-  const [results, setResults] = useState("");
+  const [results, setResults] = useState<any>(null); // تم تعديلها لتقبل Object أو Text
 
   // التحقق من الجلسة (Session) لمنع دخول غير المشتركين
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function DashboardPage() {
     if (!targetUrl.includes("http")) return alert(isRtl ? "الرجاء إدخال رابط صحيح يبدأ بـ http" : "Please enter a valid URL starting with http");
     
     setLoading(true);
-    setResults("");
+    setResults(null);
     setActiveAgent(1);
 
     // محاكاة بصرية لانتقال الوكلاء أثناء انتظار معالجة السيرفر
@@ -63,7 +63,14 @@ export default function DashboardPage() {
       setActiveAgent(4); // وكيل المراسلة
 
       if (data.status === "success") {
-        setResults(data.data);
+        // محاولة تحليل البيانات إذا كانت نصاً يشبه JSON لتلائم البطاقات الجديدة
+        try {
+           const parsedData = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+           setResults(parsedData);
+        } catch (e) {
+           // في حال لم يتم تحديث السيرفر لإرسال JSON بعد، نعرضها كنص خام
+           setResults(data.data);
+        }
       } else {
         setResults(isRtl ? "حدث خطأ في محرك الصيد: " + data.message : "Hunting error: " + data.message);
       }
@@ -229,16 +236,43 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* شاشة عرض النتائج الفعلية */}
+          {/* شاشة عرض النتائج الفعلية بهيكلة بطاقات احترافية */}
           {results && (
             <div className="mt-8 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
-              <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                 <Target className="w-5 h-5 text-emerald-400" /> 
-                {isRtl ? 'النتائج الحية من الخادم الألماني' : 'Live Results from Server'}
+                {isRtl ? 'النتائج المكتشفة من السيرفر الألماني' : 'Discovered Leads from German Server'}
               </h4>
-              <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto shadow-inner">
-                {results}
-              </div>
+              
+              {results.leads && results.leads.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {results.leads.map((lead: any, index: number) => (
+                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between transform transition hover:scale-105">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <h5 className="text-md font-semibold text-white truncate pr-2">{lead.company_name}</h5>
+                          <span className="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full whitespace-nowrap">{lead.location}</span>
+                        </div>
+                        <p className="text-slate-400 text-sm mb-4 line-clamp-3">{lead.description}</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <a href={lead.website_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg flex items-center gap-1.5 w-full justify-center">
+                          <LinkIcon className="w-3 h-3" />
+                          {isRtl ? 'زيارة الموقع' : 'Visit Site'}
+                        </a>
+                        <a href={`mailto:${lead.contact_email}`} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-1.5 w-full justify-center">
+                          <Mail className="w-3 h-3" />
+                          {isRtl ? 'مراسلة العميل' : 'Contact Client'}
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto shadow-inner">
+                  {typeof results === 'string' ? results : JSON.stringify(results, null, 2)}
+                </div>
+              )}
             </div>
           )}
 
