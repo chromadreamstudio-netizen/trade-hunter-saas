@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<any>(null);
   const [targetUrl, setTargetUrl] = useState("");
-  const [targetMarket, setTargetMarket] = useState("Kenya, Africa"); // تم التعديل لاستهداف أسواق جديدة
+  const [targetMarket, setTargetMarket] = useState("Kenya, Africa");
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(0); 
   const [results, setResults] = useState<any>(null);
@@ -151,7 +151,6 @@ export default function DashboardPage() {
             {results.leads.map((lead: any, idx: number) => (
               <div key={idx} className="bg-slate-900 border border-slate-700 rounded-2xl p-6 flex flex-col lg:flex-row gap-6 shadow-lg">
                 
-                {/* بيانات الشركة */}
                 <div className="lg:w-1/3 space-y-3">
                   <h5 className="text-xl font-bold text-white">{lead.company_name}</h5>
                   <div className="flex items-start gap-2 text-slate-400 text-sm">
@@ -170,9 +169,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* قسم المراسلة الأومني-تشانل */}
                 <div className="lg:w-2/3 flex flex-col gap-4">
-                  {/* الواتساب */}
                   <div className="bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-bold text-emerald-400 flex items-center gap-2"><MessageCircle className="w-4 h-4"/> مسودة WhatsApp</span>
@@ -183,7 +180,6 @@ export default function DashboardPage() {
                     <p className="text-sm text-slate-300 whitespace-pre-wrap">{lead.drafted_whatsapp}</p>
                   </div>
 
-                  {/* الإيميل */}
                   <div className="bg-blue-950/20 border border-blue-900/50 rounded-xl p-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-bold text-blue-400 flex items-center gap-2"><Mail className="w-4 h-4"/> مسودة البريد (Cold Email)</span>
