@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { Globe, Target, Mail, Zap, ChevronDown, ArrowRight, ShieldCheck, Users, MessageCircle, Briefcase } from "lucide-react";
+import { Globe, Target, Zap, ChevronDown, ArrowRight, ShieldCheck, Users, MessageCircle, Briefcase } from "lucide-react";
 
 export default function LandingPage() {
   const params = useParams();
@@ -82,7 +82,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      {/* Marketing Hero Section */}
+      {/* Hero Section */}
       <section className="relative pt-32 pb-24 px-6 md:px-12 flex flex-col items-center text-center overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/20 rounded-full blur-[150px] pointer-events-none"></div>
         
@@ -113,7 +113,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Value Proposition */}
+      {/* How it works */}
       <section id="how-it-works" className="py-24 px-6 md:px-12 bg-slate-950 border-t border-slate-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
