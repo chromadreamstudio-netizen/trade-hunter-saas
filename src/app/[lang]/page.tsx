@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { Globe, Target, Mail, Zap, ChevronDown, ArrowRight, ShieldCheck, BarChart3, Users, MessageCircle, Briefcase } from "lucide-react";
+import { Globe, Target, Mail, Zap, ChevronDown, ArrowRight, ShieldCheck, Users, MessageCircle, Briefcase } from "lucide-react";
 
 export default function LandingPage() {
   const params = useParams();
@@ -33,7 +33,7 @@ export default function LandingPage() {
   return (
     <main className="flex min-h-screen flex-col bg-[#020617] text-white font-sans selection:bg-blue-500/30" dir={isRtl ? 'rtl' : 'ltr'}>
       
-      {/* 1. Header */}
+      {/* Header */}
       <header className="flex h-20 items-center justify-between px-6 md:px-12 border-b border-slate-800/60 bg-[#020617]/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center font-bold">T</div>
@@ -82,7 +82,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      {/* 2. Stunning Marketing Hero Section */}
+      {/* Marketing Hero Section */}
       <section className="relative pt-40 pb-32 px-6 md:px-12 flex flex-col items-center text-center overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/20 rounded-full blur-[150px] pointer-events-none"></div>
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -120,7 +120,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. Value Proposition (How it works) */}
+      {/* Value Proposition (How it works) */}
       <section id="how-it-works" className="py-24 px-6 md:px-12 bg-slate-950 border-t border-slate-900 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
