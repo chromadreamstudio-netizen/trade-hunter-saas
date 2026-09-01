@@ -9,7 +9,7 @@ export default function CampaignsHistory() {
     async function fetchCampaigns() {
       try {
         // استبدل الرابط برابط سيرفرك الألماني الفعلي أو رابط الـ API
-        const res = await fetch('http://YOUR_SERVER_IP:8000/api/campaigns/aha384@gmail.com');
+        const res = await fetch('http://178.105.30.59:8000/api/campaigns/aha384@gmail.com');
         const data = await res.json();
         if (data.status === 'success') {
           setCampaigns(data.campaigns);
