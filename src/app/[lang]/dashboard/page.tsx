@@ -14,10 +14,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [targetUrl, setTargetUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeAgent, setActiveAgent] = useState(0); // 0: none, 1: scraper, 2: profiler, 3: hunter
-  const [results, setResults] = useState<any>(null); // تم تعديلها لتقبل Object أو Text
+  const [activeAgent, setActiveAgent] = useState(0); 
+  const [results, setResults] = useState<any>(null);
 
-  // التحقق من الجلسة (Session) لمنع دخول غير المشتركين
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -42,17 +41,18 @@ export default function DashboardPage() {
     setResults(null);
     setActiveAgent(1);
 
-    // محاكاة بصرية لانتقال الوكلاء أثناء انتظار معالجة السيرفر
     const timer1 = setTimeout(() => setActiveAgent(2), 3000);
     const timer2 = setTimeout(() => setActiveAgent(3), 6000);
 
     try {
-      const response = await fetch("/api/generate-leads", {
+      // الاتصال المباشر والمستقر بالسيرفر الألماني الحقيقي
+      const response = await fetch("http://178.105.30.59:8000/api/generate-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          product_description: targetUrl, // نرسل الرابط للسيرفر الألماني ليقوم الوكيل بقراءته
-          target_market: "السعودية والإمارات", // ثابتة مؤقتاً للتجربة
+          product_description: targetUrl,
+          target_market: "السعودية والإمارات",
+          user_email: user?.email || "aha384@gmail.com"
         }),
       });
 
@@ -60,22 +60,17 @@ export default function DashboardPage() {
       
       clearTimeout(timer1);
       clearTimeout(timer2);
-      setActiveAgent(4); // وكيل المراسلة
+      setActiveAgent(4);
 
-      if (data.status === "success") {
-        // محاولة تحليل البيانات إذا كانت نصاً يشبه JSON لتلائم البطاقات الجديدة
-        try {
-           const parsedData = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-           setResults(parsedData);
-        } catch (e) {
-           // في حال لم يتم تحديث السيرفر لإرسال JSON بعد، نعرضها كنص خام
-           setResults(data.data);
-        }
+      if (data && data.leads) {
+        setResults(data);
+      } else if (data && data.error) {
+        setResults(isRtl ? "خطأ في السيرفر: " + data.error : "Server error: " + data.error);
       } else {
-        setResults(isRtl ? "حدث خطأ في محرك الصيد: " + data.message : "Hunting error: " + data.message);
+        setResults(isRtl ? "حدث خطأ غير متوقع في جلب النتائج." : "Unexpected error fetching results.");
       }
-    } catch (error) {
-      setResults(isRtl ? "فشل الاتصال بالسيرفر المركزي." : "Connection failed.");
+    } catch (error: any) {
+      setResults(isRtl ? "فشل الاتصال بالسيرفر الألماني: " + error.message : "Connection failed to German server.");
     } finally {
       setLoading(false);
     }
@@ -95,11 +90,11 @@ export default function DashboardPage() {
           </div>
         </div>
         <nav className="flex-1 py-6 px-4 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium border border-blue-500/20 transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium border border-blue-500/25 transition-colors">
             <LayoutDashboard className="w-5 h-5" />
             {isRtl ? 'الصيد الجديد' : 'New Hunt'}
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
+          <button onClick={() => router.push(`/${currentLangCode}/dashboard/history`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
             <History className="w-5 h-5" />
             {isRtl ? 'سجل الحملات' : 'Campaign History'}
           </button>
@@ -133,7 +128,6 @@ export default function DashboardPage() {
         </header>
 
         <div className="p-8 max-w-5xl mx-auto">
-          {/* Header Section */}
           <div className="mb-10">
             <h3 className="text-3xl font-bold text-white mb-2">{isRtl ? 'أطلق وكلاء الذكاء الاصطناعي' : 'Deploy AI Agents'}</h3>
             <p className="text-slate-400">{isRtl ? 'أدخل رابط موقعك وسنتولى تحليل منتجاتك وجلب العملاء لك.' : 'Enter your URL, and we will analyze your products and hunt leads for you.'}</p>
@@ -171,7 +165,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Agents Status / UI Feedback */}
+          {/* Agents Status */}
           {activeAgent > 0 && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
               <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
@@ -180,7 +174,6 @@ export default function DashboardPage() {
               </h4>
               
               <div className="grid md:grid-cols-4 gap-4">
-                {/* Agent 1 */}
                 <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 1 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
                   <div className="flex justify-between items-center mb-3">
                     <Globe className={`w-6 h-6 ${activeAgent >= 1 ? 'text-blue-400' : 'text-slate-600'}`} />
@@ -188,10 +181,8 @@ export default function DashboardPage() {
                     {activeAgent === 1 && <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>}
                   </div>
                   <div className={`font-bold ${activeAgent >= 1 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل القراءة' : 'Scraper'}</div>
-                  <div className="text-xs text-slate-500 mt-1">{isRtl ? 'تحليل الموقع' : 'Scanning site'}</div>
                 </div>
 
-                {/* Agent 2 */}
                 <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 2 ? 'bg-cyan-900/20 border-cyan-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
                   <div className="flex justify-between items-center mb-3">
                     <Target className={`w-6 h-6 ${activeAgent >= 2 ? 'text-cyan-400' : 'text-slate-600'}`} />
@@ -199,10 +190,8 @@ export default function DashboardPage() {
                     {activeAgent === 2 && <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>}
                   </div>
                   <div className={`font-bold ${activeAgent >= 2 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل التحليل' : 'Profiler'}</div>
-                  <div className="text-xs text-slate-500 mt-1">{isRtl ? 'تحديد الشريحة' : 'Building ICP'}</div>
                 </div>
 
-                {/* Agent 3 */}
                 <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 3 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
                   <div className="flex justify-between items-center mb-3">
                     <Search className={`w-6 h-6 ${activeAgent >= 3 ? 'text-emerald-400' : 'text-slate-600'}`} />
@@ -210,17 +199,14 @@ export default function DashboardPage() {
                     {activeAgent === 3 && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>}
                   </div>
                   <div className={`font-bold ${activeAgent >= 3 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل الصيد' : 'Hunter'}</div>
-                  <div className="text-xs text-slate-500 mt-1">{isRtl ? 'استخراج البيانات' : 'Extracting data'}</div>
                 </div>
 
-                {/* Agent 4 */}
                 <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 4 ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
                   <div className="flex justify-between items-center mb-3">
                     <Mail className={`w-6 h-6 ${activeAgent >= 4 ? 'text-purple-400' : 'text-slate-600'}`} />
                     {activeAgent === 4 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                   </div>
                   <div className={`font-bold ${activeAgent >= 4 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل المراسلة' : 'Outreach'}</div>
-                  <div className="text-xs text-slate-500 mt-1">{isRtl ? 'تجهيز الرسائل' : 'Drafting emails'}</div>
                 </div>
               </div>
 
@@ -228,15 +214,14 @@ export default function DashboardPage() {
                 <div className="mt-6 p-4 rounded-xl bg-green-900/20 border border-green-500/30 text-green-400 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5" />
-                    <span>{isRtl ? 'اكتملت المهمة! جاري تجهيز النتائج...' : 'Mission complete! Preparing results...'}</span>
+                    <span>{isRtl ? 'اكتملت المهمة بنجاح!' : 'Mission complete!'}</span>
                   </div>
-                  <span className="text-sm font-mono bg-green-900/50 px-2 py-1 rounded">24 Leads Found</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* شاشة عرض النتائج الفعلية بهيكلة بطاقات احترافية */}
+          {/* عرض النتائج والبطاقات الحقيقية */}
           {results && (
             <div className="mt-8 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
               <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
@@ -247,29 +232,25 @@ export default function DashboardPage() {
               {results.leads && results.leads.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {results.leads.map((lead: any, index: number) => (
-                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between transform transition hover:scale-105">
+                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-3">
                           <h5 className="text-md font-semibold text-white truncate pr-2">{lead.company_name}</h5>
                           <span className="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full whitespace-nowrap">{lead.location}</span>
                         </div>
-                        <p className="text-slate-400 text-sm mb-4 line-clamp-3">{lead.description}</p>
+                        <p className="text-slate-400 text-sm mb-4">{lead.description}</p>
                       </div>
                       <div className="flex gap-3">
                         <a href={lead.website_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg flex items-center gap-1.5 w-full justify-center">
                           <LinkIcon className="w-3 h-3" />
                           {isRtl ? 'زيارة الموقع' : 'Visit Site'}
                         </a>
-                        <a href={`mailto:${lead.contact_email}`} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-1.5 w-full justify-center">
-                          <Mail className="w-3 h-3" />
-                          {isRtl ? 'مراسلة العميل' : 'Contact Client'}
-                        </a>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto shadow-inner">
+                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto">
                   {typeof results === 'string' ? results : JSON.stringify(results, null, 2)}
                 </div>
               )}
@@ -282,7 +263,6 @@ export default function DashboardPage() {
   );
 }
 
-// أيقونة مفقودة من الاستيراد الأساسي، نضيفها هنا للتبسيط
 function Search(props: any) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
