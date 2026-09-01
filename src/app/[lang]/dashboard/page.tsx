@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Link as LinkIcon, LayoutDashboard, History, Settings, LogOut, Bot, Target, Mail, Globe, Zap, CheckCircle2, MessageSquare } from "lucide-react";
+import { Link as LinkIcon, LayoutDashboard, History, Settings, LogOut, Bot, Target, Mail, Zap, MessageCircle, MapPin, Phone } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -13,18 +13,17 @@ export default function DashboardPage() {
 
   const [user, setUser] = useState<any>(null);
   const [targetUrl, setTargetUrl] = useState("");
+  const [targetMarket, setTargetMarket] = useState("Kenya, Africa"); // تم التعديل لاستهداف أسواق جديدة
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(0); 
   const [results, setResults] = useState<any>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push(`/${currentLangCode}/login`);
-      } else {
-        setUser(session.user);
-      }
+      if (!session) router.push(`/${currentLangCode}/login`);
+      else setUser(session.user);
     };
     checkUser();
   }, [router, currentLangCode]);
@@ -35,40 +34,28 @@ export default function DashboardPage() {
   };
 
   const handleStartHunt = async () => {
-    if (!targetUrl.includes("http")) return alert(isRtl ? "الرجاء إدخال رابط صحيح يبدأ بـ http" : "Please enter a valid URL starting with http");
-    
-    setLoading(true);
-    setResults(null);
-    setActiveAgent(1);
-
+    if (!targetUrl.includes("http")) return alert(isRtl ? "الرجاء إدخال رابط صحيح" : "Enter a valid URL");
+    setLoading(true); setResults(null); setActiveAgent(1);
     const timer1 = setTimeout(() => setActiveAgent(2), 3000);
     const timer2 = setTimeout(() => setActiveAgent(3), 6000);
 
     try {
-      // الاتصال بمسار API المحلي الذي برمجناه لتجنب حظر المتصفح
       const response = await fetch("/api/generate-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product_description: targetUrl,
-          target_market: "السعودية والإمارات", // يمكنك لاحقاً جعل هذا الحقل ديناميكياً
+          target_market: targetMarket, 
           user_email: user?.email || "aha384@gmail.com"
         }),
       });
 
       const data = await response.json();
-      
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      setActiveAgent(4);
+      clearTimeout(timer1); clearTimeout(timer2); setActiveAgent(4);
 
-      if (data && data.leads) {
-        setResults(data);
-      } else if (data && data.error) {
-        setResults(isRtl ? "خطأ في السيرفر: " + data.error : "Server error: " + data.error);
-      } else {
-        setResults(isRtl ? "حدث خطأ غير متوقع في جلب النتائج." : "Unexpected error fetching results.");
-      }
+      if (data && data.leads) setResults(data);
+      else if (data && data.error) setResults(isRtl ? "خطأ: " + data.error : "Error: " + data.error);
+      else setResults(isRtl ? "خطأ غير متوقع." : "Unexpected error.");
     } catch (error: any) {
       setResults(isRtl ? "فشل الاتصال: " + error.message : "Connection failed.");
     } finally {
@@ -76,170 +63,142 @@ export default function DashboardPage() {
     }
   };
 
-  if (!user) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  const handleSendEmail = async (lead: any) => {
+    try {
+      setSendingEmail(lead.company_name);
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_email: lead.contact_email || 'info@example.com',
+          company_name: lead.company_name,
+          email_body: lead.drafted_email
+        })
+      });
+      const data = await res.json();
+      if(data.status === 'success') alert(isRtl ? `تم الإرسال لـ ${lead.company_name}!` : `Sent to ${lead.company_name}!`);
+      else alert(isRtl ? `خطأ: ${data.message}` : `Error: ${data.message}`);
+    } catch (err) {
+      alert(isRtl ? 'فشل الاتصال.' : 'Connection failed.');
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  const handleWhatsApp = (phone: string, message: string) => {
+    if (!phone || phone === "N/A") return alert(isRtl ? "رقم الهاتف غير متوفر" : "Phone number not available");
+    const cleanPhone = phone.replace(/\D/g, '');
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  if (!user) return <div className="min-h-screen bg-slate-950 flex justify-center items-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
     <div className={`flex h-screen bg-slate-950 text-slate-200 font-sans ${isRtl ? 'dir-rtl' : 'dir-ltr'}`} dir={isRtl ? 'rtl' : 'ltr'}>
-      
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 border-x border-slate-800 flex flex-col hidden md:flex shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">T</div>
-            <h1 className="text-xl font-bold tracking-tight text-white">TradeHunter</h1>
+            <h1 className="text-xl font-bold text-white">TradeHunter</h1>
           </div>
         </div>
         <nav className="flex-1 py-6 px-4 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium border border-blue-500/25 transition-colors">
-            <LayoutDashboard className="w-5 h-5" />
-            {isRtl ? 'الصيد الجديد' : 'New Hunt'}
+          <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/10 text-blue-400 rounded-xl font-medium border border-blue-500/25">
+            <LayoutDashboard className="w-5 h-5" /> {isRtl ? 'الصيد الجديد' : 'New Hunt'}
           </button>
-          <button onClick={() => router.push(`/${currentLangCode}/dashboard/campaigns`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
-            <History className="w-5 h-5" />
-            {isRtl ? 'سجل الحملات' : 'Campaign History'}
+          <button onClick={() => router.push(`/${currentLangCode}/dashboard/campaigns`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium">
+            <History className="w-5 h-5" /> {isRtl ? 'سجل الحملات' : 'Campaign History'}
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
-            <Settings className="w-5 h-5" />
-            {isRtl ? 'الإعدادات' : 'Settings'}
+          <button onClick={() => router.push(`/${currentLangCode}/pricing`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium">
+            <Target className="w-5 h-5" /> {isRtl ? 'الباقات والاشتراك' : 'Pricing & Plans'}
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800">
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-            <LogOut className="w-4 h-4" />
-            {isRtl ? 'تسجيل الخروج' : 'Logout'}
+          <button onClick={handleLogout} className="w-full flex justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg">
+            <LogOut className="w-4 h-4" /> {isRtl ? 'تسجيل الخروج' : 'Logout'}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
-          <h2 className="text-xl font-bold text-white">{isRtl ? 'لوحة التحكم' : 'Dashboard'}</h2>
-          <div className="flex gap-4 items-center bg-emerald-950/30 px-3 py-1.5 rounded-full border border-emerald-900/50 text-xs">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-emerald-400 font-medium">Premium Plan Active</span>
-          </div>
-        </header>
-
-        <div className="p-8 max-w-5xl mx-auto">
-          <div className="mb-10">
-            <h3 className="text-3xl font-bold text-white mb-2">{isRtl ? 'أطلق موظف المبيعات الدولي' : 'Deploy Global Sales Agent'}</h3>
-            <p className="text-slate-400">{isRtl ? 'أدخل رابط المصنع وسنتولى تحليل منتجاتك، جلب العملاء، وصياغة رسائل البيع بلغتهم.' : 'Enter your URL to hunt leads and draft localized sales emails.'}</p>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl mb-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <label className="block text-sm font-medium text-slate-300 mb-3 ml-1">
-              {isRtl ? 'رابط الموقع الإلكتروني (Website URL)' : 'Website URL'}
-            </label>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <LinkIcon className="w-5 h-5 text-slate-500" />
-                </div>
-                <input 
-                  type="url" 
-                  value={targetUrl}
-                  onChange={(e) => setTargetUrl(e.target.value)}
-                  placeholder="https://www.yourfactory.com" 
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 pl-12 pr-4 py-4 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-lg"
-                  disabled={loading}
-                />
-              </div>
-              <button 
-                onClick={handleStartHunt}
-                disabled={loading || !targetUrl}
-                className={`md:w-48 rounded-2xl px-6 py-4 font-bold text-white transition-all flex items-center justify-center gap-2 ${loading || !targetUrl ? 'bg-slate-700 cursor-not-allowed text-slate-400' : 'bg-blue-600 hover:bg-blue-500'}`}
-              >
-                <Zap className={`w-5 h-5 ${loading ? 'animate-pulse' : ''}`} />
-                {loading ? (isRtl ? 'جاري المعالجة...' : 'Processing...') : (isRtl ? 'بدء الصيد' : 'Start Hunt')}
-              </button>
-            </div>
-          </div>
-
-          {activeAgent > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg mb-8">
-              <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                <Bot className="w-5 h-5 text-blue-400" /> 
-                {isRtl ? 'نشاط وكيل المبيعات' : 'Sales Agent Activity'}
-              </h4>
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className={`p-4 rounded-xl border ${activeAgent >= 1 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="font-bold text-white text-sm">1. قراءة المنتجات</div>
-                </div>
-                <div className={`p-4 rounded-xl border ${activeAgent >= 2 ? 'bg-cyan-900/20 border-cyan-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="font-bold text-white text-sm">2. تحليل الشريحة</div>
-                </div>
-                <div className={`p-4 rounded-xl border ${activeAgent >= 3 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="font-bold text-white text-sm">3. استخراج العملاء</div>
-                </div>
-                <div className={`p-4 rounded-xl border ${activeAgent >= 4 ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="font-bold text-white text-sm">4. صياغة الإيميلات</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {results && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
-              <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                <Target className="w-5 h-5 text-emerald-400" /> 
-                {isRtl ? 'العملاء والرسائل الجاهزة للإرسال' : 'Leads and Drafted Emails'}
-              </h4>
-              
-              {results.leads && results.leads.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {results.leads.map((lead: any, index: number) => (
-                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row gap-6">
-                      
-                      {/* معلومات الشركة */}
-                      <div className="md:w-1/3 border-b md:border-b-0 md:border-l border-slate-800 pb-4 md:pb-0 md:pl-6">
-                        <div className="flex justify-between items-start mb-3">
-                          <h5 className="text-lg font-semibold text-white">{lead.company_name}</h5>
-                        </div>
-                        <span className="text-xs text-blue-400 bg-blue-950 px-2.5 py-1 rounded-full mb-3 inline-block">{lead.location}</span>
-                        <p className="text-slate-400 text-sm mb-4">{lead.description}</p>
-                        <div className="flex flex-col gap-2">
-                          <a href={lead.website_url} target="_blank" className="text-xs text-slate-300 hover:text-white flex items-center gap-1">
-                            <LinkIcon className="w-3 h-3" /> {lead.website_url}
-                          </a>
-                          <span className="text-xs text-slate-300 flex items-center gap-1">
-                            <Mail className="w-3 h-3" /> {lead.contact_email}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* رسالة البريد المخصصة */}
-                      <div className="md:w-2/3 flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-emerald-500"/>
-                            الرسالة المقترحة ({lead.target_language})
-                          </span>
-                          <button className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors">
-                            إرسال الآن
-                          </button>
-                        </div>
-                        <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex-1">
-                          <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
-                            {lead.drafted_email}
-                          </pre>
-                        </div>
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800">
-                  {typeof results === 'string' ? results : JSON.stringify(results, null, 2)}
-                </div>
-              )}
-            </div>
-          )}
-
+      <main className="flex-1 overflow-y-auto p-8 max-w-6xl mx-auto">
+        <div className="mb-10">
+          <h3 className="text-3xl font-bold text-white mb-2">{isRtl ? 'استكشاف الأسواق العالمية' : 'Global Market Hunter'}</h3>
+          <p className="text-slate-400">{isRtl ? 'ابحث عن شركات حقيقية وتواصل معهم عبر الإيميل أو الواتساب فوراً.' : 'Find real companies and contact them via Email or WhatsApp instantly.'}</p>
         </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl mb-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{isRtl ? 'رابط منتجك' : 'Product URL'}</label>
+              <input type="url" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} placeholder="https://..." className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-4 text-white focus:border-blue-500 outline-none" disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{isRtl ? 'الدولة المستهدفة (مثال: كينيا، إفريقيا)' : 'Target Market'}</label>
+              <input type="text" value={targetMarket} onChange={(e) => setTargetMarket(e.target.value)} className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-4 text-white focus:border-blue-500 outline-none" disabled={loading} />
+            </div>
+          </div>
+          <button onClick={handleStartHunt} disabled={loading || !targetUrl} className={`w-full rounded-xl px-6 py-4 font-bold text-white flex justify-center gap-2 ${loading ? 'bg-slate-700' : 'bg-blue-600 hover:bg-blue-500'}`}>
+            <Zap className={`w-5 h-5 ${loading ? 'animate-pulse' : ''}`} /> {loading ? (isRtl ? 'جاري الاستكشاف وصياغة الرسائل...' : 'Hunting & Drafting...') : (isRtl ? 'بدء الصيد الشامل' : 'Start Global Hunt')}
+          </button>
+        </div>
+
+        {results && results.leads && (
+          <div className="space-y-6">
+            <h4 className="text-xl font-bold text-emerald-400">{isRtl ? 'العملاء المكتشفون من الخرائط والذكاء الاصطناعي:' : 'Discovered Leads:'}</h4>
+            {results.leads.map((lead: any, idx: number) => (
+              <div key={idx} className="bg-slate-900 border border-slate-700 rounded-2xl p-6 flex flex-col lg:flex-row gap-6 shadow-lg">
+                
+                {/* بيانات الشركة */}
+                <div className="lg:w-1/3 space-y-3">
+                  <h5 className="text-xl font-bold text-white">{lead.company_name}</h5>
+                  <div className="flex items-start gap-2 text-slate-400 text-sm">
+                    <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-red-400" /> <span>{lead.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <Phone className="w-4 h-4 text-emerald-400" /> <span dir="ltr">{lead.phone_number}</span>
+                  </div>
+                  {lead.website_url !== "N/A" && (
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <LinkIcon className="w-4 h-4 text-blue-400" /> <a href={lead.website_url} target="_blank" className="hover:text-white truncate">{lead.website_url}</a>
+                    </div>
+                  )}
+                  <div className="inline-block bg-slate-800 text-slate-300 text-xs px-3 py-1 rounded-full mt-2">
+                    اللغة: {lead.target_language}
+                  </div>
+                </div>
+
+                {/* قسم المراسلة الأومني-تشانل */}
+                <div className="lg:w-2/3 flex flex-col gap-4">
+                  {/* الواتساب */}
+                  <div className="bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-emerald-400 flex items-center gap-2"><MessageCircle className="w-4 h-4"/> مسودة WhatsApp</span>
+                      <button onClick={() => handleWhatsApp(lead.phone_number, lead.drafted_whatsapp)} className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg flex items-center gap-2">
+                        إرسال واتساب <MessageCircle className="w-3 h-3"/>
+                      </button>
+                    </div>
+                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{lead.drafted_whatsapp}</p>
+                  </div>
+
+                  {/* الإيميل */}
+                  <div className="bg-blue-950/20 border border-blue-900/50 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-blue-400 flex items-center gap-2"><Mail className="w-4 h-4"/> مسودة البريد (Cold Email)</span>
+                      <button onClick={() => handleSendEmail(lead)} disabled={sendingEmail === lead.company_name} className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg">
+                        {sendingEmail === lead.company_name ? 'جاري الإرسال...' : 'إرسال الإيميل'}
+                      </button>
+                    </div>
+                    <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans">{lead.drafted_email}</pre>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
