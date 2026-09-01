@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Link as LinkIcon, LayoutDashboard, History, Settings, LogOut, Bot, Target, Mail, Globe, Zap, CheckCircle2 } from "lucide-react";
+import { Link as LinkIcon, LayoutDashboard, History, Settings, LogOut, Bot, Target, Mail, Globe, Zap, CheckCircle2, MessageSquare } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -45,13 +45,13 @@ export default function DashboardPage() {
     const timer2 = setTimeout(() => setActiveAgent(3), 6000);
 
     try {
-      // الاتصال المباشر والمستقر بالسيرفر الألماني الحقيقي
-      const response = await fetch("http://178.105.30.59:8000/api/generate-leads", {
+      // الاتصال بمسار API المحلي الذي برمجناه لتجنب حظر المتصفح
+      const response = await fetch("/api/generate-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product_description: targetUrl,
-          target_market: "السعودية والإمارات",
+          target_market: "السعودية والإمارات", // يمكنك لاحقاً جعل هذا الحقل ديناميكياً
           user_email: user?.email || "aha384@gmail.com"
         }),
       });
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         setResults(isRtl ? "حدث خطأ غير متوقع في جلب النتائج." : "Unexpected error fetching results.");
       }
     } catch (error: any) {
-      setResults(isRtl ? "فشل الاتصال بالسيرفر الألماني: " + error.message : "Connection failed to German server.");
+      setResults(isRtl ? "فشل الاتصال: " + error.message : "Connection failed.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             <LayoutDashboard className="w-5 h-5" />
             {isRtl ? 'الصيد الجديد' : 'New Hunt'}
           </button>
-          <button onClick={() => router.push(`/${currentLangCode}/dashboard/history`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
+          <button onClick={() => router.push(`/${currentLangCode}/dashboard/campaigns`)} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-xl font-medium transition-colors">
             <History className="w-5 h-5" />
             {isRtl ? 'سجل الحملات' : 'Campaign History'}
           </button>
@@ -104,12 +104,6 @@ export default function DashboardPage() {
           </button>
         </nav>
         <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-slate-800/50 rounded-xl border border-slate-700">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs uppercase">
-              {user.email?.charAt(0)}
-            </div>
-            <div className="text-xs truncate text-slate-300 w-32">{user.email}</div>
-          </div>
           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
             <LogOut className="w-4 h-4" />
             {isRtl ? 'تسجيل الخروج' : 'Logout'}
@@ -129,11 +123,10 @@ export default function DashboardPage() {
 
         <div className="p-8 max-w-5xl mx-auto">
           <div className="mb-10">
-            <h3 className="text-3xl font-bold text-white mb-2">{isRtl ? 'أطلق وكلاء الذكاء الاصطناعي' : 'Deploy AI Agents'}</h3>
-            <p className="text-slate-400">{isRtl ? 'أدخل رابط موقعك وسنتولى تحليل منتجاتك وجلب العملاء لك.' : 'Enter your URL, and we will analyze your products and hunt leads for you.'}</p>
+            <h3 className="text-3xl font-bold text-white mb-2">{isRtl ? 'أطلق موظف المبيعات الدولي' : 'Deploy Global Sales Agent'}</h3>
+            <p className="text-slate-400">{isRtl ? 'أدخل رابط المصنع وسنتولى تحليل منتجاتك، جلب العملاء، وصياغة رسائل البيع بلغتهم.' : 'Enter your URL to hunt leads and draft localized sales emails.'}</p>
           </div>
 
-          {/* URL Input Box */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl mb-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
             
@@ -149,15 +142,15 @@ export default function DashboardPage() {
                   type="url" 
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
-                  placeholder="https://www.yourcompany.com" 
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 pl-12 pr-4 py-4 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-lg placeholder:text-slate-600"
+                  placeholder="https://www.yourfactory.com" 
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-800/50 pl-12 pr-4 py-4 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all text-lg"
                   disabled={loading}
                 />
               </div>
               <button 
                 onClick={handleStartHunt}
                 disabled={loading || !targetUrl}
-                className={`md:w-48 rounded-2xl px-6 py-4 font-bold text-white transition-all flex items-center justify-center gap-2 ${loading || !targetUrl ? 'bg-slate-700 cursor-not-allowed text-slate-400' : 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_-5px_rgba(37,99,235,0.5)]'}`}
+                className={`md:w-48 rounded-2xl px-6 py-4 font-bold text-white transition-all flex items-center justify-center gap-2 ${loading || !targetUrl ? 'bg-slate-700 cursor-not-allowed text-slate-400' : 'bg-blue-600 hover:bg-blue-500'}`}
               >
                 <Zap className={`w-5 h-5 ${loading ? 'animate-pulse' : ''}`} />
                 {loading ? (isRtl ? 'جاري المعالجة...' : 'Processing...') : (isRtl ? 'بدء الصيد' : 'Start Hunt')}
@@ -165,92 +158,81 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Agents Status */}
           {activeAgent > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg mb-8">
               <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                 <Bot className="w-5 h-5 text-blue-400" /> 
-                {isRtl ? 'نشاط الوكلاء (Live Activity)' : 'Agents Live Activity'}
+                {isRtl ? 'نشاط وكيل المبيعات' : 'Sales Agent Activity'}
               </h4>
-              
               <div className="grid md:grid-cols-4 gap-4">
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 1 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <Globe className={`w-6 h-6 ${activeAgent >= 1 ? 'text-blue-400' : 'text-slate-600'}`} />
-                    {activeAgent > 1 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                    {activeAgent === 1 && <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>}
-                  </div>
-                  <div className={`font-bold ${activeAgent >= 1 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل القراءة' : 'Scraper'}</div>
+                <div className={`p-4 rounded-xl border ${activeAgent >= 1 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
+                  <div className="font-bold text-white text-sm">1. قراءة المنتجات</div>
                 </div>
-
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 2 ? 'bg-cyan-900/20 border-cyan-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <Target className={`w-6 h-6 ${activeAgent >= 2 ? 'text-cyan-400' : 'text-slate-600'}`} />
-                    {activeAgent > 2 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                    {activeAgent === 2 && <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>}
-                  </div>
-                  <div className={`font-bold ${activeAgent >= 2 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل التحليل' : 'Profiler'}</div>
+                <div className={`p-4 rounded-xl border ${activeAgent >= 2 ? 'bg-cyan-900/20 border-cyan-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
+                  <div className="font-bold text-white text-sm">2. تحليل الشريحة</div>
                 </div>
-
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 3 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <Search className={`w-6 h-6 ${activeAgent >= 3 ? 'text-emerald-400' : 'text-slate-600'}`} />
-                    {activeAgent > 3 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                    {activeAgent === 3 && <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>}
-                  </div>
-                  <div className={`font-bold ${activeAgent >= 3 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل الصيد' : 'Hunter'}</div>
+                <div className={`p-4 rounded-xl border ${activeAgent >= 3 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
+                  <div className="font-bold text-white text-sm">3. استخراج العملاء</div>
                 </div>
-
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${activeAgent >= 4 ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <Mail className={`w-6 h-6 ${activeAgent >= 4 ? 'text-purple-400' : 'text-slate-600'}`} />
-                    {activeAgent === 4 && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                  </div>
-                  <div className={`font-bold ${activeAgent >= 4 ? 'text-white' : 'text-slate-500'}`}>{isRtl ? 'وكيل المراسلة' : 'Outreach'}</div>
+                <div className={`p-4 rounded-xl border ${activeAgent >= 4 ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-800/30 border-slate-800'}`}>
+                  <div className="font-bold text-white text-sm">4. صياغة الإيميلات</div>
                 </div>
               </div>
-
-              {activeAgent === 4 && (
-                <div className="mt-6 p-4 rounded-xl bg-green-900/20 border border-green-500/30 text-green-400 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>{isRtl ? 'اكتملت المهمة بنجاح!' : 'Mission complete!'}</span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* عرض النتائج والبطاقات الحقيقية */}
           {results && (
-            <div className="mt-8 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-lg">
               <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                 <Target className="w-5 h-5 text-emerald-400" /> 
-                {isRtl ? 'النتائج المكتشفة من السيرفر الألماني' : 'Discovered Leads from German Server'}
+                {isRtl ? 'العملاء والرسائل الجاهزة للإرسال' : 'Leads and Drafted Emails'}
               </h4>
               
               {results.leads && results.leads.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   {results.leads.map((lead: any, index: number) => (
-                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-                      <div>
+                    <div key={index} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row gap-6">
+                      
+                      {/* معلومات الشركة */}
+                      <div className="md:w-1/3 border-b md:border-b-0 md:border-l border-slate-800 pb-4 md:pb-0 md:pl-6">
                         <div className="flex justify-between items-start mb-3">
-                          <h5 className="text-md font-semibold text-white truncate pr-2">{lead.company_name}</h5>
-                          <span className="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full whitespace-nowrap">{lead.location}</span>
+                          <h5 className="text-lg font-semibold text-white">{lead.company_name}</h5>
                         </div>
+                        <span className="text-xs text-blue-400 bg-blue-950 px-2.5 py-1 rounded-full mb-3 inline-block">{lead.location}</span>
                         <p className="text-slate-400 text-sm mb-4">{lead.description}</p>
+                        <div className="flex flex-col gap-2">
+                          <a href={lead.website_url} target="_blank" className="text-xs text-slate-300 hover:text-white flex items-center gap-1">
+                            <LinkIcon className="w-3 h-3" /> {lead.website_url}
+                          </a>
+                          <span className="text-xs text-slate-300 flex items-center gap-1">
+                            <Mail className="w-3 h-3" /> {lead.contact_email}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex gap-3">
-                        <a href={lead.website_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg flex items-center gap-1.5 w-full justify-center">
-                          <LinkIcon className="w-3 h-3" />
-                          {isRtl ? 'زيارة الموقع' : 'Visit Site'}
-                        </a>
+
+                      {/* رسالة البريد المخصصة */}
+                      <div className="md:w-2/3 flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4 text-emerald-500"/>
+                            الرسالة المقترحة ({lead.target_language})
+                          </span>
+                          <button className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            إرسال الآن
+                          </button>
+                        </div>
+                        <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex-1">
+                          <pre className="text-xs text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">
+                            {lead.drafted_email}
+                          </pre>
+                        </div>
                       </div>
+
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800 max-h-96 overflow-y-auto">
+                <div className="text-slate-300 font-mono text-sm whitespace-pre-wrap bg-slate-950 p-6 rounded-xl border border-slate-800">
                   {typeof results === 'string' ? results : JSON.stringify(results, null, 2)}
                 </div>
               )}
@@ -261,10 +243,4 @@ export default function DashboardPage() {
       </main>
     </div>
   );
-}
-
-function Search(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-  )
 }
